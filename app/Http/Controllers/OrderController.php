@@ -15,23 +15,65 @@ class OrderController extends Controller
 {
     public function addToCart($id)
     {
-        $customer = Customer::where('user_id', Auth::id())->first();
-        $produk = Produk::findOrFail($id);
-        $order = Order::firstOrCreate(
-            ['customer_id' => $customer->id, 'status' => 'pending'],
-            ['total_harga' => 0]
-        );
-        $orderItem = OrderItem::firstOrCreate(
-            ['order_id' => $order->id, 'produk_id' => $produk->id],
-            ['quantity' => 1, 'harga' => $produk->harga]
-        );
-
-        if (!$orderItem->wasRecentlyCreated) {
-            $orderItem->quantity++;
-            $orderItem->save();
+        // Cek apakah user sudah login
+        if (!Auth::check()) {
+            return redirect()->route('login')->with('error', 'Silakan login terlebih dahulu');
         }
 
-        $order->total_harga += $produk->harga;
+        // Cek apakah user adalah customer
+        $customer = Customer::where('user_id', Auth::id())->first();
+        
+        if (!$customer) {
+            // Jika user login tapi bukan customer, redirect ke halaman register customer
+            return redirect()->route('customer.register')->with('error', 'Anda perlu mendaftar sebagai customer terlebih dahulu');
+        }
+
+        $produk = Produk::findOrFail($id);
+        
+        // Cek stok
+        if ($produk->stok <= 0) {
+            return redirect()->back()->with('error', 'Stok produk habis');
+        }
+
+        // Cari atau buat order dengan status pending
+        $order = Order::firstOrCreate(
+            [
+                'customer_id' => $customer->id,
+                'status' => 'pending'
+            ],
+            [
+                'total_harga' => 0,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]
+        );
+
+        // Cek apakah produk sudah ada di keranjang
+        $orderItem = OrderItem::where('order_id', $order->id)
+                            ->where('produk_id', $id)
+                            ->first();
+
+        if ($orderItem) {
+            // Jika sudah ada, tambah quantity
+            if ($orderItem->quantity >= $produk->stok) {
+                return redirect()->back()->with('error', 'Quantity melebihi stok yang tersedia');
+            }
+            $orderItem->quantity += 1;
+            $orderItem->save();
+        } else {
+            // Jika belum ada, buat baru
+            OrderItem::create([
+                'order_id' => $order->id,
+                'produk_id' => $id,
+                'quantity' => 1,
+                'harga' => $produk->harga
+            ]);
+        }
+
+        // Update total harga order
+        $order->total_harga = $order->orderItems->sum(function($item) {
+            return $item->quantity * $item->harga;
+        });
         $order->save();
 
         return redirect()->route('order.cart')->with('success', 'Produk berhasil ditambahkan ke keranjang');

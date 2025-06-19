@@ -94,7 +94,8 @@ Route::middleware('is.customer')->group(function () {
 
     // Route untuk menambahkan produk ke keranjang
     Route::post('add-to-cart/{id}', [OrderController::class, 'addToCart'])
-        ->name('order.addToCart');
+        ->name('order.addToCart')
+        ->middleware('auth');
 
     // Route untuk menampilkan keranjang
     Route::get('cart', [OrderController::class, 'viewCart'])
@@ -153,4 +154,5 @@ Route::get('/cek-ongkir', function () {
 Route::get('/provinces', [RajaOngkirController::class, 'getProvinces']); 
 Route::get('/cities', [RajaOngkirController::class, 'getCities']); 
 Route::post('/cost', [RajaOngkirController::class, 'getCost']);
+
 
