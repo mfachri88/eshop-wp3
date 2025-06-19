@@ -12,17 +12,12 @@ class Customer extends Authenticatable
 
     protected $table = 'customer';
 
+    // ✅ PERBAIKAN: Hanya field yang ada di tabel customer
     protected $fillable = [
         'user_id',
-        'nama',
-        'email',
-        'status',
-        'role',
-        'password',
-        'hp',
+        'nama',           // Bisa null, untuk nama tambahan customer
         'alamat',
         'pos',
-        'foto',
         'google_id',
         'google_token',
     ];
@@ -45,11 +40,11 @@ class Customer extends Authenticatable
     }
 
     protected $hidden = [
-        'password',
-        'remember_token',
+        'google_token',
     ];
 
     protected $casts = [
-        'email_verified_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 }

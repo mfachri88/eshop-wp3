@@ -117,7 +117,7 @@
         <div class="alert alert-info" role="alert">
             Anda belum memiliki riwayat pesanan.
         </div>
-        <a href="{{ route('produk.index') }}" class="btn btn-primary">Mulai Belanja Sekarang</a>
+        <a href="{{ route('produk.all') }}" class="btn btn-primary">Mulai Belanja Sekarang</a>
     @endif
 </div>
 @endsection

@@ -1,3 +1,4 @@
+
 @extends('backend.v_layouts.app')
 @section('content')
 <!-- contentAwal -->
@@ -26,6 +27,21 @@
                             </div>
 
                             <div class="col-md-8">
+                                <!-- ✅ TAMBAHAN: Dropdown Status -->
+                                <div class="form-group">
+                                    <label>Status</label>
+                                    <select name="status" class="form-control @error('status') is-invalid @enderror">
+                                        <option value="" {{ old('status') == '' ? 'selected' : '' }}> - Pilih Status -</option>
+                                        <option value="1" {{ old('status') == '1' ? 'selected' : '' }}>Public</option>
+                                        <option value="0" {{ old('status') == '0' ? 'selected' : '' }}>Blok</option>
+                                    </select>
+                                    @error('status')
+                                    <span class="invalid-feedback alert-danger" role="alert">
+                                        {{ $message }}
+                                    </span>
+                                    @enderror
+                                </div>
+
                                 <div class="form-group">
                                     <label>Kategori</label>
                                     <select class="form-control @error('kategori') is-invalid @enderror" name="kategori_id">
