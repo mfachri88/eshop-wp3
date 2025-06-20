@@ -125,40 +125,63 @@ class CustomerController extends Controller
 
     public function updateAkun(Request $request, $id)
     {
+        // 1. Temukan customer berdasarkan user_id
         $customer = Customer::where('user_id', $id)->firstOrFail();
-        
-        // Validasi
+        $user = $customer->user;
+
+        // 2. Aturan validasi
         $rules = [
             'nama' => 'required|max:255',
             'hp' => 'required|min:10|max:13',
             'alamat' => 'required',
             'pos' => 'required',
+            'foto' => 'image|mimes:jpeg,jpg,png,gif|file|max:1024', // Validasi untuk foto
         ];
-        
-        if ($request->email != $customer->user->email) {
-            $rules['email'] = 'required|max:255|email|unique:user,email,' . $customer->user->id;
+
+        // Validasi email hanya jika diubah
+        if ($request->email != $user->email) {
+            $rules['email'] = 'required|max:255|email|unique:users,email,' . $user->id;
         }
-        
-        $validatedData = $request->validate($rules);
-        
-        // Update user data
-        $customer->user->update([
-            'nama' => $validatedData['nama'],
-            'hp' => $validatedData['hp'],
-            'email' => $validatedData['email'] ?? $customer->user->email,
+
+        $validatedData = $request->validate($rules, [
+            'foto.image' => 'Format gambar harus jpeg, jpg, png, atau gif.',
+            'foto.max' => 'Ukuran file gambar maksimal adalah 1024 KB.'
         ]);
-        
-        // Update customer data dengan try-catch
-        try {
-            $customer->alamat = $request->alamat;
-            $customer->pos = $request->pos;
-            $customer->save();
-        } catch (\Exception $e) {
-            \Log::error('Error updating customer: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Gagal mengupdate data alamat: ' . $e->getMessage());
+
+        // 3. Proses upload foto jika ada file baru
+        if ($request->hasFile('foto')) {
+            // Hapus foto lama jika ada
+            if ($user->foto) {
+                $oldImagePath = public_path('storage/img-customer/') . $user->foto;
+                if (file_exists($oldImagePath)) {
+                    unlink($oldImagePath);
+                }
+            }
+
+            // Simpan foto baru menggunakan ImageHelper
+            $file = $request->file('foto');
+            $extension = $file->getClientOriginalExtension();
+            $originalFileName = date('YmdHis') . '_' . uniqid() . '.' . $extension;
+            $directory = 'storage/img-customer/';
+            
+            ImageHelper::uploadAndResize($file, $directory, $originalFileName, 385, 400);
+            
+            // Simpan nama file baru untuk diupdate ke database
+            $user->foto = $originalFileName;
         }
-        
-        return redirect()->route('customer.akun', $id)->with('success', 'Data berhasil diperbarui');
+
+        // 4. Update data di tabel 'users'
+        $user->nama = $request->nama;
+        $user->email = $request->email;
+        $user->hp = $request->hp;
+        $user->save();
+
+        // 5. Update data di tabel 'customer'
+        $customer->alamat = $request->alamat;
+        $customer->pos = $request->pos;
+        $customer->save();
+
+        return redirect()->route('customer.akun', $user->id)->with('success', 'Data akun berhasil diperbarui');
     }
 
     public function akun($id)
